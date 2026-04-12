@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: theme('colors.studio-bg');
+    color: theme('colors.studio-text');
+    font-family: var(--font-body);
+  }
+
+  .prose strong,
+  .prose b {
+    color: theme('colors.studio-cream');
+  }
+  .prose em {
+    color: theme('colors.studio-text');
+  }
+  .prose h1,
+  .prose h2,
+  .prose h3 {
+    color: theme('colors.studio-cream');
+  }
+}
+
+@layer components {
+  .studio-input {
+    @apply bg-studio-surface border border-studio-primary/30 text-studio-cream rounded-lg px-3 py-2 w-full
+           focus:outline-none focus:ring-2 focus:ring-studio-gold focus:border-studio-gold
+           transition-all duration-[150ms] placeholder:text-studio-muted;
+  }
+
+  .studio-btn-primary {
+    @apply bg-studio-primary text-studio-bg font-semibold px-4 py-2 rounded-lg
+           hover:-translate-y-0.5 hover:shadow-studio-glow-lg
+           transition-all duration-[150ms] cursor-pointer;
+  }
+
+  .studio-btn-ghost {
+    @apply border border-studio-primary/50 text-studio-primary px-4 py-2 rounded-lg
+           hover:bg-studio-primary/10 hover:border-studio-primary
+           transition-all duration-[150ms] cursor-pointer;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0ms !important;
+    transition-duration: 0ms !important;
+  }
+}

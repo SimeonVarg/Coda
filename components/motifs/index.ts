@@ -1,0 +1,6 @@
+export { default as TrebleClef } from './TrebleClef'
+export { default as StaffLines } from './StaffLines'
+export { default as QuarterNote } from './QuarterNote'
+export { default as EighthNoteBeam } from './EighthNoteBeam'
+export { default as Waveform } from './Waveform'
+export { default as MusicBackground } from './MusicBackground'
