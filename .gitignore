@@ -78,6 +78,22 @@ web_modules/
 .next
 out
 
+# Next.js generated types (auto-generated, not source)
+next-env.d.ts
+
+# Lock files — use package.json only
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Kiro IDE files
+.kiro/
+.agents/
+skills-lock.json
+
+# Editor config
+.vscode/
+
 # Nuxt.js build / generate output
 .nuxt
 dist
