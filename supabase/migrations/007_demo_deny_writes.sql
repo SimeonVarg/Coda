@@ -39,11 +39,19 @@ CREATE POLICY demo_deny_write_catalog_items ON public.catalog_items
   AS RESTRICTIVE FOR INSERT TO authenticated
   WITH CHECK (coalesce((auth.jwt()->'user_metadata'->>'is_demo')::boolean, false) = false);
 
--- repertoire_tags
-CREATE POLICY demo_deny_write_repertoire_tags ON public.repertoire_tags
-  AS RESTRICTIVE FOR ALL TO authenticated
+-- repertoire_tags (INSERT/UPDATE/DELETE only — SELECT must remain allowed)
+CREATE POLICY demo_deny_insert_repertoire_tags ON public.repertoire_tags
+  AS RESTRICTIVE FOR INSERT TO authenticated
+  WITH CHECK (coalesce((auth.jwt()->'user_metadata'->>'is_demo')::boolean, false) = false);
+
+CREATE POLICY demo_deny_update_repertoire_tags ON public.repertoire_tags
+  AS RESTRICTIVE FOR UPDATE TO authenticated
   USING (coalesce((auth.jwt()->'user_metadata'->>'is_demo')::boolean, false) = false)
   WITH CHECK (coalesce((auth.jwt()->'user_metadata'->>'is_demo')::boolean, false) = false);
+
+CREATE POLICY demo_deny_delete_repertoire_tags ON public.repertoire_tags
+  AS RESTRICTIVE FOR DELETE TO authenticated
+  USING (coalesce((auth.jwt()->'user_metadata'->>'is_demo')::boolean, false) = false);
 
 -- student_profiles (INSERT/UPDATE/DELETE only — SELECT must remain allowed)
 CREATE POLICY demo_deny_write_student_profiles ON public.student_profiles

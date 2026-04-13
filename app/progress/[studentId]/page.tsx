@@ -198,7 +198,7 @@ export default async function ProgressPage({
           </Link>
         )}
       </div>
-      <p className="text-studio-muted text-sm mb-6">
+      <p className="text-studio-text text-sm mb-6">
         Repertoire and theory assignments.
       </p>
 
