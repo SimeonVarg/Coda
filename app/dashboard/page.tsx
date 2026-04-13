@@ -62,14 +62,17 @@ async function StudentList({ teacherId }: { teacherId: string }) {
       {students.map((student) => (
         <li
           key={student.id}
-          className="bg-studio-surface rounded-2xl shadow-studio-glow hover:-translate-y-1 hover:shadow-studio-glow-lg transition-all duration-[250ms] will-change-transform"
+          className="relative bg-studio-surface rounded-2xl shadow-studio-glow hover:-translate-y-1 hover:shadow-studio-glow-lg transition-all duration-[250ms] will-change-transform"
         >
-          <div className="p-4">
-            <Link
-              href={`/progress/${student.id}`}
-              className="flex items-center justify-between group"
-            >
-              <span className="text-studio-cream font-medium group-hover:text-studio-gold transition-colors duration-[250ms]">
+          {/* Full-card link to progress page */}
+          <Link
+            href={`/progress/${student.id}`}
+            className="absolute inset-0 rounded-2xl"
+            aria-label={`View ${student.full_name}'s progress`}
+          />
+          <div className="relative p-4 pointer-events-none">
+            <div className="flex items-center justify-between">
+              <span className="text-studio-cream font-medium">
                 {student.full_name}
               </span>
               <span className="text-studio-muted text-sm">
@@ -80,8 +83,8 @@ async function StudentList({ teacherId }: { teacherId: string }) {
                     )
                   : "No lessons yet"}
               </span>
-            </Link>
-            <div className="mt-2">
+            </div>
+            <div className="mt-2 pointer-events-auto relative z-10">
               <Link
                 href={`/students/${student.id}/profile`}
                 className="text-xs font-medium text-studio-gold hover:text-studio-cream transition-colors duration-[150ms]"
