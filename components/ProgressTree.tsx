@@ -119,7 +119,6 @@ export default function ProgressTree({ data, role }: ProgressTreeProps) {
     )
     setUpdateError(null)
 
-    const supabase = createSupabaseClient()
     const { error } = await supabase
       .from("repertoire_tags")
       .update({ status: newStatus })
