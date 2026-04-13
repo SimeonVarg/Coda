@@ -70,8 +70,8 @@ async function StudentList({ teacherId }: { teacherId: string }) {
             className="absolute inset-0 rounded-2xl"
             aria-label={`View ${student.full_name}'s progress`}
           />
-          <div className="relative p-4 pointer-events-none">
-            <div className="flex items-center justify-between">
+          <div className="relative p-4">
+            <div className="flex items-center justify-between pointer-events-none">
               <span className="text-studio-cream font-medium">
                 {student.full_name}
               </span>
@@ -84,7 +84,7 @@ async function StudentList({ teacherId }: { teacherId: string }) {
                   : "No lessons yet"}
               </span>
             </div>
-            <div className="mt-2 pointer-events-auto relative z-10">
+            <div className="mt-2 relative z-10">
               <Link
                 href={`/students/${student.id}/profile`}
                 className="text-xs font-medium text-studio-gold hover:text-studio-cream transition-colors duration-[150ms]"
