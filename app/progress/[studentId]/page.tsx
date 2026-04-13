@@ -125,7 +125,7 @@ async function getAssignmentsData(
 async function ProgressContent({ studentId, role }: { studentId: string; role: "teacher" | "student" }) {
   const supabase = createSupabaseServerClient()
 
-  const [progressData, profileRow, assignmentsData] = await Promise.all([
+  const [progressData, profileRow, assignmentsData, studentRow] = await Promise.all([
     getProgressData(studentId),
     supabase
       .from("student_profiles")
@@ -134,6 +134,12 @@ async function ProgressContent({ studentId, role }: { studentId: string; role: "
       .single()
       .then(({ data }) => data),
     getAssignmentsData(studentId, role),
+    supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", studentId)
+      .single()
+      .then(({ data }) => data),
   ])
 
   const profile: StudentProfile | null = profileRow
@@ -142,7 +148,7 @@ async function ProgressContent({ studentId, role }: { studentId: string; role: "
 
   return (
     <>
-      <ProfileHeader profile={profile} />
+      <ProfileHeader profile={profile} studentName={studentRow?.full_name ?? undefined} />
       <ProgressTree data={progressData} role={role} />
       <section className="mt-10">
         <h2 className="text-lg font-semibold text-studio-text mb-3">Practice Assignments</h2>
@@ -192,7 +198,7 @@ export default async function ProgressPage({
           </Link>
         )}
       </div>
-      <p className="text-studio-muted text-sm">
+      <p className="text-studio-muted text-sm mb-6">
         Repertoire and theory assignments.
       </p>
 

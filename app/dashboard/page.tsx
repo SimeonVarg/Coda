@@ -62,29 +62,35 @@ async function StudentList({ teacherId }: { teacherId: string }) {
       {students.map((student) => (
         <li
           key={student.id}
-          className="bg-studio-surface rounded-2xl shadow-studio-glow p-4 hover:-translate-y-1 hover:shadow-studio-glow-lg transition-all duration-[250ms] will-change-transform"
+          className="bg-studio-surface rounded-2xl shadow-studio-glow hover:-translate-y-1 hover:shadow-studio-glow-lg transition-all duration-[250ms] will-change-transform"
         >
           <Link
             href={`/progress/${student.id}`}
-            className="flex items-center justify-between group"
+            className="block p-4 group"
           >
-            <span className="text-studio-cream font-medium group-hover:text-studio-gold transition-colors duration-[250ms]">
-              {student.full_name}
-            </span>
-            <span className="text-studio-muted text-sm">
-              {student.last_lesson_date
-                ? new Date(student.last_lesson_date).toLocaleDateString(
-                    undefined,
-                    { year: "numeric", month: "short", day: "numeric" }
-                  )
-                : "No lessons yet"}
-            </span>
-          </Link>
-          <Link
-            href={`/students/${student.id}/profile`}
-            className="mt-2 inline-block text-xs text-studio-primary hover:text-studio-gold transition-colors duration-[250ms]"
-          >
-            Edit Profile
+            <div className="flex items-center justify-between">
+              <span className="text-studio-cream font-medium group-hover:text-studio-gold transition-colors duration-[250ms]">
+                {student.full_name}
+              </span>
+              <span className="text-studio-muted text-sm">
+                {student.last_lesson_date
+                  ? new Date(student.last_lesson_date).toLocaleDateString(
+                      undefined,
+                      { year: "numeric", month: "short", day: "numeric" }
+                    )
+                  : "No lessons yet"}
+              </span>
+            </div>
+            <div className="mt-2 flex items-center gap-3">
+              <span
+                className="inline-block text-xs font-medium text-studio-gold hover:text-studio-cream transition-colors duration-[150ms]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Link href={`/students/${student.id}/profile`}>
+                  Edit Profile →
+                </Link>
+              </span>
+            </div>
           </Link>
         </li>
       ))}

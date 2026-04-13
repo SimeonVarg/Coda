@@ -9,7 +9,7 @@ export default function Breadcrumb({ href, label }: BreadcrumbProps) {
   return (
     <Link
       href={href}
-      className="text-sm text-studio-muted hover:text-studio-gold transition-colors duration-[150ms]"
+      className="text-sm text-studio-text hover:text-studio-gold transition-colors duration-[150ms]"
     >
       ← {label}
     </Link>
