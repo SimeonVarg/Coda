@@ -7,6 +7,7 @@ import RepertoireCatalogSearch from '@/components/RepertoireCatalogSearch'
 import TagList from '@/components/TagList'
 import Spinner from '@/components/Spinner'
 import { createSupabaseClient } from '@/lib/supabase/client'
+import { isDemoUser } from '@/lib/demo'
 import type { CatalogItem, JSONContent, RepertoireStatus, TagWithStatus, AssignmentDraft } from '@/lib/types'
 import AssignmentForm from '@/components/AssignmentForm'
 
@@ -112,6 +113,13 @@ export default function LessonEntryForm({
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('Not authenticated')
+
+      // Block demo users from saving
+      if (isDemoUser(session.user)) {
+        setValidationError('Saving is disabled in demo mode.')
+        setSaving(false)
+        return
+      }
 
       const teacherId = session.user.id
 

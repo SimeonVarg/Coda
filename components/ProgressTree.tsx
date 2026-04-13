@@ -5,6 +5,7 @@ import type { ProgressTreeData, RepertoireItem, RepertoireStatus } from "@/lib/t
 import TagStatusSelector from "@/components/TagStatusSelector"
 import EmptyState from "@/components/EmptyState"
 import { createSupabaseClient } from "@/lib/supabase/client"
+import { isDemoUser } from "@/lib/demo"
 
 interface ProgressTreeProps {
   data: ProgressTreeData
@@ -103,6 +104,14 @@ export default function ProgressTree({ data, role }: ProgressTreeProps) {
   const handleStatusChange = async (tagId: string, newStatus: RepertoireStatus) => {
     const prev = repertoireItems.find((i) => i.id === tagId)
     if (!prev) return
+
+    // Block demo users
+    const supabase = createSupabaseClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (isDemoUser(user)) {
+      setUpdateError("Editing is disabled in demo mode.")
+      return
+    }
 
     // Optimistic update
     setRepertoireItems((items) =>

@@ -25,6 +25,11 @@ export async function upsertStudentProfile(
     return { success: false, error: "Not authenticated." }
   }
 
+  // Block demo users from writing
+  if (user.user_metadata?.is_demo === true) {
+    return { success: false, error: "Saving is disabled in demo mode." }
+  }
+
   const { error } = await supabase
     .from("student_profiles")
     .upsert(

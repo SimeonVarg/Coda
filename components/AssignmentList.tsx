@@ -3,6 +3,7 @@
 import { useState } from "react"
 import type { AssignmentRow } from "@/lib/types"
 import { createSupabaseClient } from "@/lib/supabase/client"
+import { isDemoUser } from "@/lib/demo"
 import EmptyState from "@/components/EmptyState"
 
 interface AssignmentListProps {
@@ -26,6 +27,14 @@ export default function AssignmentList({ assignments, role }: AssignmentListProp
   const completedItems = items.filter((a) => a.completed_at !== null)
 
   const markDone = async (id: string) => {
+    // Block demo users
+    const supabase = createSupabaseClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (isDemoUser(user)) {
+      setErrors((prev) => ({ ...prev, [id]: "Saving is disabled in demo mode." }))
+      return
+    }
+
     const now = new Date().toISOString()
 
     // Optimistic update — remove from active list
@@ -38,7 +47,6 @@ export default function AssignmentList({ assignments, role }: AssignmentListProp
       return next
     })
 
-    const supabase = createSupabaseClient()
     const { error } = await supabase
       .from("practice_assignments")
       .update({ completed_at: now })

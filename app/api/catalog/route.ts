@@ -24,6 +24,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json<ErrorResponse>({ error: "Forbidden" }, { status: 403 })
   }
 
+  // Block demo users from writing
+  if (user.user_metadata?.is_demo === true) {
+    return NextResponse.json<ErrorResponse>(
+      { error: "Saving is disabled in demo mode." },
+      { status: 403 }
+    )
+  }
+
   // Parse body
   let body: CreateCatalogItemBody
   try {
