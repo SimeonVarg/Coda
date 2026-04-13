@@ -64,11 +64,11 @@ async function StudentList({ teacherId }: { teacherId: string }) {
           key={student.id}
           className="bg-studio-surface rounded-2xl shadow-studio-glow hover:-translate-y-1 hover:shadow-studio-glow-lg transition-all duration-[250ms] will-change-transform"
         >
-          <Link
-            href={`/progress/${student.id}`}
-            className="block p-4 group"
-          >
-            <div className="flex items-center justify-between">
+          <div className="p-4">
+            <Link
+              href={`/progress/${student.id}`}
+              className="flex items-center justify-between group"
+            >
               <span className="text-studio-cream font-medium group-hover:text-studio-gold transition-colors duration-[250ms]">
                 {student.full_name}
               </span>
@@ -80,18 +80,16 @@ async function StudentList({ teacherId }: { teacherId: string }) {
                     )
                   : "No lessons yet"}
               </span>
-            </div>
-            <div className="mt-2 flex items-center gap-3">
-              <span
-                className="inline-block text-xs font-medium text-studio-gold hover:text-studio-cream transition-colors duration-[150ms]"
-                onClick={(e) => e.stopPropagation()}
+            </Link>
+            <div className="mt-2">
+              <Link
+                href={`/students/${student.id}/profile`}
+                className="text-xs font-medium text-studio-gold hover:text-studio-cream transition-colors duration-[150ms]"
               >
-                <Link href={`/students/${student.id}/profile`}>
-                  Edit Profile →
-                </Link>
-              </span>
+                Edit Profile →
+              </Link>
             </div>
-          </Link>
+          </div>
         </li>
       ))}
     </ul>
