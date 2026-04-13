@@ -6,11 +6,19 @@
 -- so demo users can still read but never write.
 -- ============================================================
 
--- profiles
+-- profiles (INSERT/UPDATE/DELETE only — SELECT must remain allowed for reading student lists)
 CREATE POLICY demo_deny_write_profiles ON public.profiles
-  AS RESTRICTIVE FOR ALL TO authenticated
+  AS RESTRICTIVE FOR INSERT TO authenticated
+  WITH CHECK (coalesce((auth.jwt()->'user_metadata'->>'is_demo')::boolean, false) = false);
+
+CREATE POLICY demo_deny_update_profiles ON public.profiles
+  AS RESTRICTIVE FOR UPDATE TO authenticated
   USING (coalesce((auth.jwt()->'user_metadata'->>'is_demo')::boolean, false) = false)
   WITH CHECK (coalesce((auth.jwt()->'user_metadata'->>'is_demo')::boolean, false) = false);
+
+CREATE POLICY demo_deny_delete_profiles ON public.profiles
+  AS RESTRICTIVE FOR DELETE TO authenticated
+  USING (coalesce((auth.jwt()->'user_metadata'->>'is_demo')::boolean, false) = false);
 
 -- lesson_entries (separate INSERT/UPDATE/DELETE for clarity)
 CREATE POLICY demo_deny_write_lesson_entries ON public.lesson_entries
@@ -37,11 +45,19 @@ CREATE POLICY demo_deny_write_repertoire_tags ON public.repertoire_tags
   USING (coalesce((auth.jwt()->'user_metadata'->>'is_demo')::boolean, false) = false)
   WITH CHECK (coalesce((auth.jwt()->'user_metadata'->>'is_demo')::boolean, false) = false);
 
--- student_profiles
+-- student_profiles (INSERT/UPDATE/DELETE only — SELECT must remain allowed)
 CREATE POLICY demo_deny_write_student_profiles ON public.student_profiles
-  AS RESTRICTIVE FOR ALL TO authenticated
+  AS RESTRICTIVE FOR INSERT TO authenticated
+  WITH CHECK (coalesce((auth.jwt()->'user_metadata'->>'is_demo')::boolean, false) = false);
+
+CREATE POLICY demo_deny_update_student_profiles ON public.student_profiles
+  AS RESTRICTIVE FOR UPDATE TO authenticated
   USING (coalesce((auth.jwt()->'user_metadata'->>'is_demo')::boolean, false) = false)
   WITH CHECK (coalesce((auth.jwt()->'user_metadata'->>'is_demo')::boolean, false) = false);
+
+CREATE POLICY demo_deny_delete_student_profiles ON public.student_profiles
+  AS RESTRICTIVE FOR DELETE TO authenticated
+  USING (coalesce((auth.jwt()->'user_metadata'->>'is_demo')::boolean, false) = false);
 
 -- practice_assignments
 CREATE POLICY demo_deny_write_practice_assignments ON public.practice_assignments
