@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Cormorant_Garamond, Inter } from 'next/font/google'
 import './globals.css'
 import NavBar from '@/components/NavBar'
+import DemoBanner from '@/components/DemoBanner'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 const displayFont = Cormorant_Garamond({
@@ -30,6 +31,7 @@ export default async function RootLayout({
   const supabase = createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   const role = (user?.app_metadata?.role as 'teacher' | 'student' | null) ?? null
+  const isDemo = user?.user_metadata?.is_demo === true
 
   return (
     <html lang="en" className={`${displayFont.variable} ${bodyFont.variable}`}>
@@ -38,7 +40,8 @@ export default async function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Noto+Music&display=swap" rel="stylesheet" />
       </head>
-      <body className="bg-studio-bg">
+      <body className={`bg-studio-bg${isDemo ? ' pt-10' : ''}`}>
+        {isDemo && role && <DemoBanner role={role} />}
         <NavBar role={role} />
         {children}
       </body>

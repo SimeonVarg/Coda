@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { signIn } from '@/lib/auth'
+import { getDemoCredentials, demoEnabled, DEMO_STUDENT_ID } from '@/lib/demo'
 import MusicBackground from '@/components/motifs/MusicBackground'
 
 export default function LoginPage() {
@@ -9,6 +10,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [demoLoading, setDemoLoading] = useState<'teacher' | 'student' | null>(null)
+  const [demoError, setDemoError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -18,12 +21,29 @@ export default function LoginPage() {
     const result = await signIn(email, password)
 
     if (result.success) {
-      // Full page reload required — router.push() does client-side nav which
-      // skips the server re-reading the new session cookie, causing stale views.
       window.location.href = '/dashboard'
     } else {
       setError(result.error)
       setLoading(false)
+    }
+  }
+
+  async function handleDemoSignIn(role: 'teacher' | 'student') {
+    const creds = getDemoCredentials(role)
+    if (!creds) return
+
+    setDemoError(null)
+    setDemoLoading(role)
+
+    const result = await signIn(creds.email, creds.password)
+
+    if (result.success) {
+      window.location.href = role === 'teacher'
+        ? '/dashboard'
+        : `/progress/${DEMO_STUDENT_ID}`
+    } else {
+      setDemoError('Demo is temporarily unavailable. Please try again later.')
+      setDemoLoading(null)
     }
   }
 
@@ -84,6 +104,44 @@ export default function LoginPage() {
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
+
+        {demoEnabled && (
+          <div className="mt-6">
+            <div className="relative flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-studio-rim" />
+              </div>
+              <span className="relative bg-studio-surface px-3 text-sm text-studio-muted">
+                or preview the app
+              </span>
+            </div>
+
+            <div className="mt-4 flex gap-3">
+              <button
+                type="button"
+                disabled={demoLoading !== null}
+                onClick={() => handleDemoSignIn('teacher')}
+                className="studio-btn-ghost flex-1 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {demoLoading === 'teacher' ? 'Loading…' : 'Preview as Teacher'}
+              </button>
+              <button
+                type="button"
+                disabled={demoLoading !== null}
+                onClick={() => handleDemoSignIn('student')}
+                className="studio-btn-ghost flex-1 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {demoLoading === 'student' ? 'Loading…' : 'Preview as Student'}
+              </button>
+            </div>
+
+            {demoError && (
+              <p className="mt-3 text-sm text-studio-rose text-center" role="alert">
+                {demoError}
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </main>
   )
