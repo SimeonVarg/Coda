@@ -3,7 +3,7 @@ import Link from "next/link"
 import { Suspense } from "react"
 import { getSession, getUserRole } from "@/lib/auth.server"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import type { ProgressTreeData, RepertoireItem, RepertoireStatus, TheoryItem, StudentProfile, AssignmentRow } from "@/lib/types"
+import type { ProgressTreeData, RepertoireItem, RepertoireStatus, TheoryItem, StudentProfile, AssignmentRow, LessonEntryTag } from "@/lib/types"
 import ProgressTree from "@/components/ProgressTree"
 import ProfileHeader from "@/components/ProfileHeader"
 import AssignmentList from "@/components/AssignmentList"
@@ -13,6 +13,12 @@ import ProgressLoading from "./loading"
 
 export function generateMetadata() {
   return { title: 'Progress Tree \u2014 Coda' }
+}
+
+type RawTag = {
+  id: string
+  status: string
+  catalog_items: { id: string; title: string; type: string; composer: string | null } | null
 }
 
 async function getProgressData(studentId: string): Promise<ProgressTreeData> {
@@ -45,20 +51,18 @@ async function getProgressData(studentId: string): Promise<ProgressTreeData> {
 
   const repertoire_items: RepertoireItem[] = []
   const completed_theory: TheoryItem[] = []
-  // Track by catalog_item.id — most-recent tag wins (entries ordered desc)
   const seenCatalogIds = new Set<string>()
 
   for (const entry of entries ?? []) {
-    for (const tag of (entry.repertoire_tags as any[]) ?? []) {
-      const item = tag.catalog_items as {
-        id: string; title: string; type: string; composer: string | null
-      } | null
+    const tags = ((entry as typeof entry & { repertoire_tags: RawTag[] }).repertoire_tags) ?? []
+    for (const tag of tags) {
+      const item = tag.catalog_items
       if (!item || seenCatalogIds.has(item.id)) continue
       seenCatalogIds.add(item.id)
 
       if (item.type === "repertoire") {
         repertoire_items.push({
-          id: tag.id,           // repertoire_tags.id for inline updates
+          id: tag.id,
           title: item.title,
           composer: item.composer,
           status: (tag.status ?? "introduced") as RepertoireStatus,
@@ -76,12 +80,32 @@ async function getProgressData(studentId: string): Promise<ProgressTreeData> {
   return {
     repertoire_items,
     completed_theory,
-    lesson_entries: (entries ?? []).map((e) => ({
-      id: e.id,
-      created_at: e.created_at,
-      content: e.content,
-    })),
+    lesson_entries: (entries ?? []).map((e) => {
+      const tags = ((e as typeof e & { repertoire_tags: RawTag[] }).repertoire_tags) ?? []
+      const entryTags: LessonEntryTag[] = tags
+        .filter((t) => t.catalog_items)
+        .map((t) => ({
+          id: t.id,
+          title: t.catalog_items!.title,
+          type: t.catalog_items!.type as "repertoire" | "theory",
+          status: (t.status ?? "introduced") as RepertoireStatus | "completed",
+        }))
+      return {
+        id: e.id as string,
+        created_at: e.created_at as string,
+        content: e.content as import("@/lib/types").JSONContent,
+        tags: entryTags,
+      }
+    }),
   }
+}
+
+type RawAssignmentRow = {
+  id: string
+  description: string
+  due_date: string | null
+  completed_at: string | null
+  lesson_entries: { created_at: string } | null
 }
 
 async function getAssignmentsData(
@@ -113,7 +137,7 @@ async function getAssignmentsData(
     return []
   }
 
-  return (data ?? []).map((row: any) => ({
+  return (data as unknown as RawAssignmentRow[]).map((row) => ({
     id: row.id,
     description: row.description,
     due_date: row.due_date ?? null,
@@ -146,10 +170,12 @@ async function ProgressContent({ studentId, role }: { studentId: string; role: "
     ? { grade_level: profileRow.grade_level ?? null, instrument: profileRow.instrument ?? null, goals: profileRow.goals ?? null }
     : null
 
+  const lessonCount = progressData.lesson_entries?.length ?? 0
+
   return (
     <>
       <ProfileHeader profile={profile} studentName={studentRow?.full_name ?? undefined} />
-      <ProgressTree data={progressData} role={role} />
+      <ProgressTree data={progressData} role={role} lessonCount={lessonCount} />
       <section className="mt-10">
         <h2 className="text-lg font-semibold text-studio-text mb-3">Practice Assignments</h2>
         <AssignmentList assignments={assignmentsData} role={role} />
@@ -172,7 +198,6 @@ export default async function ProgressPage({
   const { studentId } = params
   const role = await getUserRole()
 
-  // Students can only view their own progress
   if (role === "student" && session.user.id !== studentId) {
     redirect(`/progress/${session.user.id}`)
   }

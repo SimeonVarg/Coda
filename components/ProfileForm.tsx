@@ -9,15 +9,17 @@ import Spinner from "@/components/Spinner"
 interface ProfileFormProps {
   studentId: string
   initialProfile: StudentProfile | null
+  updatedAt?: string | null
 }
 
-export default function ProfileForm({ studentId, initialProfile }: ProfileFormProps) {
+export default function ProfileForm({ studentId, initialProfile, updatedAt }: ProfileFormProps) {
   const [gradeLevel, setGradeLevel] = useState(initialProfile?.grade_level ?? "")
   const [instrument, setInstrument] = useState(initialProfile?.instrument ?? "")
   const [goals, setGoals] = useState(initialProfile?.goals ?? "")
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [savedAt, setSavedAt] = useState<string | null>(updatedAt ?? null)
   const goalsRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -38,19 +40,20 @@ export default function ProfileForm({ studentId, initialProfile }: ProfileFormPr
     }
 
     setSaving(true)
-    const result = await upsertStudentProfile(studentId, {
-      grade_level: gradeLevel,
-      instrument,
-      goals,
-    })
+    const result = await upsertStudentProfile(studentId, { grade_level: gradeLevel, instrument, goals })
     setSaving(false)
 
     if (result.success) {
       setSuccess(true)
+      setSavedAt(new Date().toISOString())
     } else {
       setError(result.error)
     }
   }
+
+  const formattedDate = savedAt
+    ? new Date(savedAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+    : null
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -66,9 +69,7 @@ export default function ProfileForm({ studentId, initialProfile }: ProfileFormPr
       )}
 
       <div>
-        <label htmlFor="grade-level" className="block text-sm font-medium text-studio-cream mb-1">
-          Grade Level
-        </label>
+        <label htmlFor="grade-level" className="block text-sm font-medium text-studio-cream mb-1">Grade Level</label>
         <input
           id="grade-level"
           type="text"
@@ -80,9 +81,7 @@ export default function ProfileForm({ studentId, initialProfile }: ProfileFormPr
       </div>
 
       <div>
-        <label htmlFor="instrument" className="block text-sm font-medium text-studio-cream mb-1">
-          Instrument
-        </label>
+        <label htmlFor="instrument" className="block text-sm font-medium text-studio-cream mb-1">Instrument</label>
         <input
           id="instrument"
           type="text"
@@ -94,9 +93,7 @@ export default function ProfileForm({ studentId, initialProfile }: ProfileFormPr
       </div>
 
       <div>
-        <label htmlFor="goals" className="block text-sm font-medium text-studio-cream mb-1">
-          Long-term Goals
-        </label>
+        <label htmlFor="goals" className="block text-sm font-medium text-studio-cream mb-1">Long-term Goals</label>
         <textarea
           id="goals"
           ref={goalsRef}
@@ -110,18 +107,16 @@ export default function ProfileForm({ studentId, initialProfile }: ProfileFormPr
         <CharacterCount current={goals.length} max={500} />
       </div>
 
-      <button
-        type="submit"
-        disabled={saving}
-        className="studio-btn-primary disabled:opacity-50"
-      >
-        {saving ? (
-          <span className="flex items-center gap-2">
-            <Spinner />
-            Saving…
-          </span>
-        ) : "Save Profile"}
-      </button>
+      <div className="flex items-center gap-4">
+        <button type="submit" disabled={saving} className="studio-btn-primary disabled:opacity-50">
+          {saving ? (
+            <span className="flex items-center gap-2"><Spinner />Saving…</span>
+          ) : "Save Profile"}
+        </button>
+        {formattedDate && (
+          <p className="text-xs text-studio-muted">Last updated: {formattedDate}</p>
+        )}
+      </div>
     </form>
   )
 }

@@ -5,94 +5,92 @@ import { getSession, getUserRole } from "@/lib/auth.server"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import type { StudentSummary } from "@/lib/types"
 import DashboardLoading from "./loading"
-import EmptyState from "@/components/EmptyState"
 import { EighthNoteBeam, MusicBackground } from "@/components/motifs"
+import StudentSearch from "./StudentSearch"
 
 export const metadata = { title: 'My Students \u2014 Coda' }
 
 async function getStudents(teacherId: string): Promise<StudentSummary[]> {
   const supabase = createSupabaseServerClient()
 
-  // Simple query first — just get students assigned to this teacher
   const { data, error } = await supabase
-    .from("profiles")
-    .select("id, full_name")
+    .from("student_dashboard")
+    .select("id, full_name, last_lesson_date, lesson_count, has_recent_lesson, pending_assignments")
     .eq("teacher_id", teacherId)
-    .eq("role", "student")
+    .order("full_name")
 
   if (error) {
-    console.error("Failed to fetch students:", error.message, error.code, error.details)
+    console.error("Failed to fetch students:", error.message)
     return []
   }
 
-  // Get last lesson date separately for each student
-  const students: StudentSummary[] = await Promise.all(
-    (data ?? []).map(async (row) => {
-      const { data: lessons } = await supabase
-        .from("lesson_entries")
-        .select("created_at")
-        .eq("student_id", row.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
+  return (data ?? []).map((row) => ({
+    id: row.id as string,
+    full_name: row.full_name as string,
+    last_lesson_date: (row.last_lesson_date as string) ?? null,
+    lesson_count: Number((row.lesson_count as number | string) ?? 0),
+    has_recent_lesson: Boolean(row.has_recent_lesson),
+    pending_assignments: Number((row.pending_assignments as number | string) ?? 0),
+  }))
+}
 
-      return {
-        id: row.id as string,
-        full_name: row.full_name as string,
-        last_lesson_date: lessons?.[0]?.created_at ?? null,
-      }
-    })
+function QuickStats({ students }: { students: StudentSummary[] }) {
+  const total = students.length
+  const lessonsThisWeek = students.filter((s) => s.has_recent_lesson).length
+  const avgLessons =
+    total > 0
+      ? (students.reduce((sum, s) => sum + s.lesson_count, 0) / total).toFixed(1)
+      : "0"
+  const totalPending = students.reduce((sum, s) => sum + s.pending_assignments, 0)
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+      <div className="bg-studio-surface rounded-xl p-4 border border-studio-rim text-center">
+        <p className="text-2xl font-display font-semibold text-studio-gold">{total}</p>
+        <p className="text-xs text-studio-muted mt-1">Students</p>
+      </div>
+      <div className="bg-studio-surface rounded-xl p-4 border border-studio-rim text-center">
+        <p className="text-2xl font-display font-semibold text-studio-gold">{lessonsThisWeek}</p>
+        <p className="text-xs text-studio-muted mt-1">Active this week</p>
+      </div>
+      <div className="bg-studio-surface rounded-xl p-4 border border-studio-rim text-center">
+        <p className="text-2xl font-display font-semibold text-studio-gold">{avgLessons}</p>
+        <p className="text-xs text-studio-muted mt-1">Avg lessons</p>
+      </div>
+      <div className="bg-studio-surface rounded-xl p-4 border border-studio-rim text-center">
+        <p className={`text-2xl font-display font-semibold ${totalPending > 0 ? "text-studio-rose" : "text-studio-gold"}`}>
+          {totalPending}
+        </p>
+        <p className="text-xs text-studio-muted mt-1">Pending tasks</p>
+      </div>
+    </div>
   )
+}
 
-  return students
+function DashboardEmptyState() {
+  return (
+    <div className="mt-12 flex flex-col items-center text-center gap-4">
+      <div className="text-6xl select-none" aria-hidden="true">𝄞</div>
+      <h2 className="text-studio-cream font-display text-2xl">No students yet</h2>
+      <p className="text-studio-muted text-sm max-w-xs">
+        Students will appear here once they&apos;re assigned to you. Ask your admin to add students to your account.
+      </p>
+    </div>
+  )
 }
 
 async function StudentList({ teacherId }: { teacherId: string }) {
   const students = await getStudents(teacherId)
 
   if (students.length === 0) {
-    return (
-      <div className="mt-6 text-studio-muted">
-        <EmptyState message="No students assigned yet." />
-      </div>
-    )
+    return <DashboardEmptyState />
   }
 
   return (
-    <ul className="mt-6 space-y-3">
-      {students.map((student) => (
-        <li key={student.id}>
-          <div className="relative bg-studio-surface rounded-2xl shadow-studio-glow hover:-translate-y-1 hover:shadow-studio-glow-lg transition-all duration-[250ms] will-change-transform">
-            <Link
-              href={`/progress/${student.id}`}
-              className="block p-4"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-studio-cream font-medium hover:text-studio-gold transition-colors duration-[250ms]">
-                  {student.full_name}
-                </span>
-                <span className="text-studio-muted text-sm">
-                  {student.last_lesson_date
-                    ? new Date(student.last_lesson_date).toLocaleDateString(
-                        undefined,
-                        { year: "numeric", month: "short", day: "numeric" }
-                      )
-                    : "No lessons yet"}
-                </span>
-              </div>
-              <div className="mt-2 h-5" />
-            </Link>
-            <div className="absolute bottom-4 left-4 z-10">
-              <Link
-                href={`/students/${student.id}/profile`}
-                className="text-xs font-medium text-studio-gold hover:text-studio-cream transition-colors duration-[150ms]"
-              >
-                Edit Profile →
-              </Link>
-            </div>
-          </div>
-        </li>
-      ))}
-    </ul>
+    <>
+      <QuickStats students={students} />
+      <StudentSearch students={students} />
+    </>
   )
 }
 
@@ -105,7 +103,6 @@ export default async function DashboardPage() {
 
   const role = await getUserRole()
 
-  // Students don't have a dashboard — send them to their own progress tree
   if (role === "student") {
     redirect(`/progress/${session.user.id}`)
   }
@@ -115,7 +112,6 @@ export default async function DashboardPage() {
   return (
     <main className="relative overflow-hidden min-h-screen bg-studio-bg px-6 py-10 max-w-3xl mx-auto" style={{ position: 'relative', zIndex: 1 }}>
       <MusicBackground />
-      {/* Header area — concert program style */}
       <div className="relative mb-8">
         <div className="relative flex items-start gap-4">
           <EighthNoteBeam

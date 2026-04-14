@@ -22,7 +22,6 @@ export default async function StudentProfilePage({ params }: ProfilePageProps) {
 
   const supabase = createSupabaseServerClient()
 
-  // Verify the student is assigned to the requesting teacher
   const { data: student } = await supabase
     .from("profiles")
     .select("id, full_name, teacher_id")
@@ -32,10 +31,9 @@ export default async function StudentProfilePage({ params }: ProfilePageProps) {
 
   if (!student) notFound()
 
-  // Fetch existing profile (may be null)
   const { data: profileRow } = await supabase
     .from("student_profiles")
-    .select("grade_level, instrument, goals")
+    .select("grade_level, instrument, goals, updated_at")
     .eq("student_id", studentId)
     .single()
 
@@ -55,7 +53,11 @@ export default async function StudentProfilePage({ params }: ProfilePageProps) {
         {student.full_name}
       </h1>
       <p className="text-sm text-studio-muted mb-8">Student profile</p>
-      <ProfileForm studentId={studentId} initialProfile={profile} />
+      <ProfileForm
+        studentId={studentId}
+        initialProfile={profile}
+        updatedAt={(profileRow?.updated_at as string | null) ?? null}
+      />
     </main>
   )
 }

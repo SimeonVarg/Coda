@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import TiptapEditor from '@/components/TiptapEditor'
 import RepertoireCatalogSearch from '@/components/RepertoireCatalogSearch'
@@ -22,7 +22,6 @@ interface LessonEntryFormProps {
 function isEmptyDoc(content: JSONContent): boolean {
   if (content.type !== 'doc') return false
   if (!content.content || content.content.length === 0) return true
-  // A single empty paragraph also counts as empty
   if (
     content.content.length === 1 &&
     content.content[0].type === 'paragraph' &&
@@ -31,6 +30,15 @@ function isEmptyDoc(content: JSONContent): boolean {
     return true
   }
   return false
+}
+
+// Detect Mac for shortcut hint display (navigator.platform is deprecated; userAgent is the safe fallback)
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
+
+function extractText(node: JSONContent): string {
+  if (node.text) return node.text
+  if (node.content) return node.content.map(extractText).join(' ')
+  return ''
 }
 
 export default function LessonEntryForm({
@@ -48,10 +56,30 @@ export default function LessonEntryForm({
   const [validationError, setValidationError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
+  const wordCount = useMemo(() => {
+    const text = extractText(content).trim()
+    return text ? text.split(/\s+/).length : 0
+  }, [content])
+
   const initialContentRef = useRef<JSONContent>(
     initialContent ?? { type: 'doc', content: [] }
   )
   const initialTagsRef = useRef<TagWithStatus[]>(initialTags)
+
+  // Keep a stable ref to handleSave for the keyboard shortcut
+  const handleSaveRef = useRef<() => void>(() => {})
+
+  // Keyboard shortcut: Ctrl+S / Cmd+S to save
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        handleSaveRef.current()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
   // Warn before leaving when there are unsaved changes
   useEffect(() => {
@@ -95,12 +123,10 @@ export default function LessonEntryForm({
   }, [])
 
   const handleSave = async () => {
-    // Client-side validation
     if (isEmptyDoc(content) && tags.length === 0) {
-      setValidationError('Please add notes or tag at least one piece.')
+      setValidationError('Add lesson notes or tag at least one piece before saving.')
       return
     }
-    // Validate assignment descriptions
     if (assignments.some((a) => !a.description.trim())) {
       setValidationError('All practice assignments must have a description.')
       return
@@ -114,7 +140,6 @@ export default function LessonEntryForm({
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('Not authenticated')
 
-      // Block demo users from saving
       if (isDemoUser(session.user)) {
         setValidationError('Saving is disabled in demo mode.')
         setSaving(false)
@@ -122,32 +147,27 @@ export default function LessonEntryForm({
       }
 
       const teacherId = session.user.id
-
       let entryId = lessonEntryId
 
       if (entryId) {
-        // Update existing entry
         const { error } = await supabase
           .from('lesson_entries')
           .update({ content })
           .eq('id', entryId)
         if (error) throw error
 
-        // Replace tags: delete old, insert new
         const { error: delError } = await supabase
           .from('repertoire_tags')
           .delete()
           .eq('lesson_entry_id', entryId)
         if (delError) throw delError
 
-        // Replace assignments: delete old, insert new
         const { error: delAssignError } = await supabase
           .from('practice_assignments')
           .delete()
           .eq('lesson_entry_id', entryId)
         if (delAssignError) throw delAssignError
       } else {
-        // Insert new entry
         const { data, error } = await supabase
           .from('lesson_entries')
           .insert({ teacher_id: teacherId, student_id: studentId, content })
@@ -157,7 +177,6 @@ export default function LessonEntryForm({
         entryId = data.id
       }
 
-      // Insert repertoire tags
       if (tags.length > 0) {
         const tagRows = tags.map(({ item, status }) => ({
           lesson_entry_id: entryId,
@@ -170,7 +189,6 @@ export default function LessonEntryForm({
         if (tagError) throw tagError
       }
 
-      // Insert practice assignments
       const validAssignments = assignments.filter((a) => a.description.trim())
       if (validAssignments.length > 0) {
         const assignmentRows = validAssignments.map((a) => ({
@@ -187,12 +205,14 @@ export default function LessonEntryForm({
 
       router.push(`/progress/${studentId}`)
     } catch {
-      // Show toast-style error without losing form state
       setValidationError('Failed to save. Please try again.')
     } finally {
       setSaving(false)
     }
   }
+
+  // Keep ref in sync with latest handleSave closure
+  handleSaveRef.current = handleSave
 
   return (
     <div className="space-y-6">
@@ -202,6 +222,7 @@ export default function LessonEntryForm({
           Lesson Notes
         </label>
         <TiptapEditor initialContent={initialContent} onChange={handleContentChange} labelId="lesson-notes-label" />
+        <p className="mt-1 text-xs text-studio-muted text-right">{wordCount} {wordCount === 1 ? 'word' : 'words'}</p>
       </section>
 
       {/* Catalog search */}
@@ -239,6 +260,7 @@ export default function LessonEntryForm({
           type="button"
           onClick={handleSave}
           disabled={saving}
+          title={isMac ? 'Save (⌘S)' : 'Save (Ctrl+S)'}
           className="studio-btn-primary disabled:opacity-50"
         >
           {saving ? (
@@ -255,6 +277,9 @@ export default function LessonEntryForm({
         >
           Cancel
         </button>
+        <span className="text-xs text-studio-muted ml-auto" aria-label="Keyboard shortcut to save">
+          {isMac ? '⌘S' : 'Ctrl+S'} to save
+        </span>
       </div>
     </div>
   )

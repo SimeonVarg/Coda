@@ -18,6 +18,7 @@ export default function RepertoireCatalogSearch({
   const [results, setResults] = useState<CatalogItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [announcement, setAnnouncement] = useState("")
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastQueryRef = useRef<string>("")
 
@@ -25,6 +26,7 @@ export default function RepertoireCatalogSearch({
     if (!q) {
       setResults([])
       setError(null)
+      setAnnouncement("")
       return
     }
 
@@ -38,9 +40,15 @@ export default function RepertoireCatalogSearch({
       if (!res.ok) throw new Error("Search request failed")
       const data: CatalogItem[] = await res.json()
       setResults(data)
+      setAnnouncement(
+        data.length === 0
+          ? `No results for "${q}"`
+          : `${data.length} result${data.length === 1 ? "" : "s"} for "${q}"`
+      )
     } catch {
       setError("Search failed. Try again.")
       setResults([])
+      setAnnouncement("Search failed.")
     } finally {
       setLoading(false)
     }
@@ -65,6 +73,11 @@ export default function RepertoireCatalogSearch({
 
   return (
     <div className="w-full">
+      {/* Screen reader live region for search result announcements */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {announcement}
+      </div>
+
       <input
         id={inputId}
         type="text"
@@ -105,7 +118,7 @@ export default function RepertoireCatalogSearch({
             <li key={item.id}>
               <button
                 type="button"
-                onClick={() => onSelect(item)}
+                onClick={() => { onSelect(item); setQuery("") }}
                 className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-studio-rim focus:bg-studio-rim focus:outline-none"
               >
                 <span className="flex-1">

@@ -13,6 +13,9 @@ export type StudentSummary = {
   id: string
   full_name: string
   last_lesson_date: string | null
+  lesson_count: number
+  has_recent_lesson: boolean
+  pending_assignments: number
 }
 
 export type RepertoireStatus = "introduced" | "in_progress" | "mastered"
@@ -30,10 +33,17 @@ export type TheoryItem = {
   status: "completed"
 }
 
+export type LessonEntryTag = {
+  id: string
+  title: string
+  type: "repertoire" | "theory"
+  status: RepertoireStatus | "completed"
+}
+
 export type ProgressTreeData = {
-  repertoire_items: RepertoireItem[] // renamed from mastered_repertoire
+  repertoire_items: RepertoireItem[]
   completed_theory: TheoryItem[]
-  lesson_entries?: Array<{ id: string; created_at: string; content: unknown }>
+  lesson_entries?: Array<{ id: string; created_at: string; content: JSONContent; tags: LessonEntryTag[] }>
 }
 
 export type CatalogItem = {

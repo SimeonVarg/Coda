@@ -2,6 +2,8 @@
 
 import type { AssignmentDraft } from "@/lib/types"
 
+const DESC_MAX = 200
+
 interface AssignmentFormProps {
   assignments: AssignmentDraft[]
   onChange: (assignments: AssignmentDraft[]) => void
@@ -9,10 +11,7 @@ interface AssignmentFormProps {
 
 export default function AssignmentForm({ assignments, onChange }: AssignmentFormProps) {
   const addAssignment = () => {
-    onChange([
-      ...assignments,
-      { key: crypto.randomUUID(), description: "", due_date: null },
-    ])
+    onChange([...assignments, { key: crypto.randomUUID(), description: "", due_date: null }])
   }
 
   const removeAssignment = (key: string) => {
@@ -32,10 +31,7 @@ export default function AssignmentForm({ assignments, onChange }: AssignmentForm
       {assignments.map((assignment) => (
         <div key={assignment.key} className="flex items-start gap-2">
           <div className="flex-1 space-y-1">
-            <label
-              htmlFor={`assignment-desc-${assignment.key}`}
-              className="sr-only"
-            >
+            <label htmlFor={`assignment-desc-${assignment.key}`} className="sr-only">
               Assignment description
             </label>
             <input
@@ -44,12 +40,15 @@ export default function AssignmentForm({ assignments, onChange }: AssignmentForm
               value={assignment.description}
               onChange={(e) => updateDescription(assignment.key, e.target.value)}
               placeholder="e.g. Practice bars 1–16 of Für Elise, 20 minutes daily"
+              maxLength={DESC_MAX}
               className="block w-full rounded-md bg-studio-surface border border-studio-primary/30 text-studio-cream px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-studio-gold focus:border-studio-gold transition-all duration-[150ms] placeholder:text-studio-muted"
             />
-            <label
-              htmlFor={`due-date-${assignment.key}`}
-              className="block text-xs text-studio-muted"
-            >
+            {assignment.description.length > 0 && (
+              <p className={`text-right text-xs ${assignment.description.length >= 180 ? "text-studio-rose" : "text-studio-muted"}`}>
+                {assignment.description.length} / {DESC_MAX}
+              </p>
+            )}
+            <label htmlFor={`due-date-${assignment.key}`} className="block text-xs text-studio-muted">
               Optional due date
             </label>
             <input

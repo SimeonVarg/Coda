@@ -1,15 +1,18 @@
 "use client"
 
 import { useState } from "react"
-import type { ProgressTreeData, RepertoireItem, RepertoireStatus } from "@/lib/types"
+import Link from "next/link"
+import type { ProgressTreeData, RepertoireItem, RepertoireStatus, JSONContent, LessonEntryTag } from "@/lib/types"
 import TagStatusSelector from "@/components/TagStatusSelector"
 import EmptyState from "@/components/EmptyState"
 import { createSupabaseClient } from "@/lib/supabase/client"
 import { isDemoUser } from "@/lib/demo"
+import { formatDate } from "@/lib/utils"
 
 interface ProgressTreeProps {
   data: ProgressTreeData
   role: "teacher" | "student"
+  lessonCount?: number
 }
 
 const STATUS_ORDER: RepertoireStatus[] = ["introduced", "in_progress", "mastered"]
@@ -55,9 +58,10 @@ function RepertoireSection({
 }) {
   const { border, heading } = STATUS_SECTION_CLASSES[status]
   return (
-    <section>
-      <h3 className={`text-sm font-semibold uppercase tracking-wide mb-2 ${heading}`}>
+    <section aria-label={`${STATUS_LABELS[status]} repertoire`}>
+      <h3 className={`text-sm font-semibold uppercase tracking-wide mb-2 flex items-center gap-2 ${heading}`}>
         {STATUS_LABELS[status]}
+        <span className="font-normal normal-case tracking-normal opacity-70">· {items.length}</span>
       </h3>
       <ul className={`space-y-2 pl-4 border-l-2 ${border}`}>
         {items.map((item, i) => (
@@ -70,11 +74,11 @@ function RepertoireSection({
             <div className="flex-1 min-w-0">
               <span className="font-medium text-studio-cream">{item.title}</span>
               {item.composer && (
-                <span className="text-studio-muted text-sm ml-2">— {item.composer}</span>
+                <span className="text-studio-muted text-sm ml-2 truncate">— {item.composer}</span>
               )}
             </div>
             {flashId === item.id && (
-              <span className="text-studio-gold text-sm font-medium">✓</span>
+              <span className="text-studio-gold text-sm font-medium" aria-hidden="true">✓</span>
             )}
             <StatusBadge status={item.status} />
             {role === "teacher" && (
@@ -90,22 +94,80 @@ function RepertoireSection({
   )
 }
 
-export default function ProgressTree({ data, role }: ProgressTreeProps) {
+function extractText(node: JSONContent): string {
+  if (node.text) return node.text
+  if (node.content) return node.content.map(extractText).join(" ")
+  return ""
+}
+
+function LessonContent({ content }: { content: JSONContent }) {
+  const text = extractText(content).trim()
+  return text
+    ? <p className="text-studio-text text-sm whitespace-pre-wrap line-clamp-3">{text}</p>
+    : <p className="text-studio-muted text-sm italic">No notes.</p>
+}
+
+const TAG_STATUS_BADGE: Record<string, string> = {
+  introduced: "bg-studio-primary/20 text-studio-primary",
+  in_progress: "bg-studio-gold/20 text-studio-gold",
+  mastered: "bg-studio-cream/20 text-studio-cream",
+  completed: "bg-studio-gold/20 text-studio-gold",
+}
+
+function LessonTags({ tags }: { tags: LessonEntryTag[] }) {
+  if (tags.length === 0) return null
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {tags.map((tag) => (
+        <span
+          key={tag.id}
+          className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium ${TAG_STATUS_BADGE[tag.status] ?? "bg-studio-surface text-studio-muted"}`}
+        >
+          {tag.type === "repertoire" ? "♪" : "♩"} {tag.title}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function ProgressSummary({ items }: { items: RepertoireItem[] }) {
+  if (items.length === 0) return null
+  const mastered = items.filter((i) => i.status === "mastered").length
+  const pct = Math.round((mastered / items.length) * 100)
+  return (
+    <div className="grid grid-cols-3 gap-3 mb-6">
+      {[
+        { value: items.length, label: "Total pieces" },
+        { value: mastered, label: "Mastered" },
+        { value: `${pct}%`, label: "Completion" },
+      ].map(({ value, label }) => (
+        <div key={label} className="bg-studio-surface rounded-xl p-3 border border-studio-rim text-center">
+          <p className="text-xl font-display font-semibold text-studio-gold">{value}</p>
+          <p className="text-xs text-studio-muted mt-0.5">{label}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export default function ProgressTree({ data, role, lessonCount }: ProgressTreeProps) {
   const [repertoireItems, setRepertoireItems] = useState<RepertoireItem[]>(
     data.repertoire_items
   )
   const [updateError, setUpdateError] = useState<string | null>(null)
   const [flashId, setFlashId] = useState<string | null>(null)
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const { completed_theory, lesson_entries } = data
-  const hasTaggedItems = repertoireItems.length > 0 || completed_theory.length > 0
+  const hasRepertoire = repertoireItems.length > 0
+  const hasTheory = completed_theory.length > 0
   const hasEntries = (lesson_entries ?? []).length > 0
+  const count = lessonCount ?? lesson_entries?.length ?? 0
 
   const handleStatusChange = async (tagId: string, newStatus: RepertoireStatus) => {
     const prev = repertoireItems.find((i) => i.id === tagId)
     if (!prev) return
 
-    // Block demo users
     const supabase = createSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (isDemoUser(user)) {
@@ -113,7 +175,6 @@ export default function ProgressTree({ data, role }: ProgressTreeProps) {
       return
     }
 
-    // Optimistic update
     setRepertoireItems((items) =>
       items.map((i) => (i.id === tagId ? { ...i, status: newStatus } : i))
     )
@@ -125,7 +186,6 @@ export default function ProgressTree({ data, role }: ProgressTreeProps) {
       .eq("id", tagId)
 
     if (error) {
-      // Revert on failure
       setRepertoireItems((items) =>
         items.map((i) => (i.id === tagId ? { ...i, status: prev.status } : i))
       )
@@ -136,7 +196,6 @@ export default function ProgressTree({ data, role }: ProgressTreeProps) {
     }
   }
 
-  // Group repertoire items by status, preserving STATUS_ORDER
   const grouped = STATUS_ORDER.reduce<Record<RepertoireStatus, RepertoireItem[]>>(
     (acc, s) => {
       acc[s] = repertoireItems.filter((i) => i.status === s)
@@ -147,16 +206,27 @@ export default function ProgressTree({ data, role }: ProgressTreeProps) {
 
   return (
     <div className="mt-6 space-y-10">
+      {/* Lesson count badge */}
+      {count > 0 && (
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-studio-primary/15 border border-studio-primary/30 px-3 py-1 text-xs font-medium text-studio-primary">
+            ♪ {count} {count === 1 ? "lesson" : "lessons"}
+          </span>
+        </div>
+      )}
+
       {updateError && (
         <p role="alert" className="text-sm text-studio-rose">{updateError}</p>
       )}
 
       {/* Repertoire grouped by status */}
-      {repertoireItems.length > 0 && (
-        <section>
+      {hasRepertoire ? (
+        <section aria-label="Repertoire">
           <h2 className="text-lg font-semibold text-studio-gold mb-4 flex items-center gap-2">
             Repertoire
+            <span className="text-sm font-normal text-studio-muted">· {repertoireItems.length}</span>
           </h2>
+          <ProgressSummary items={repertoireItems} />
           <div className="space-y-6">
             {STATUS_ORDER.map((status) =>
               grouped[status].length > 0 ? (
@@ -172,13 +242,16 @@ export default function ProgressTree({ data, role }: ProgressTreeProps) {
             )}
           </div>
         </section>
+      ) : (
+        <EmptyState message="No repertoire tagged yet. Add pieces during a lesson." />
       )}
 
       {/* Theory */}
-      {completed_theory.length > 0 && (
-        <section>
+      {hasTheory ? (
+        <section aria-label="Theory">
           <h2 className="text-lg font-semibold text-studio-gold mb-3 flex items-center gap-2">
             Theory
+            <span className="text-sm font-normal text-studio-muted">· {completed_theory.length}</span>
           </h2>
           <ul className="space-y-2 pl-4 border-l-2 border-studio-gold/30">
             {completed_theory.map((item) => (
@@ -195,51 +268,57 @@ export default function ProgressTree({ data, role }: ProgressTreeProps) {
             ))}
           </ul>
         </section>
+      ) : (
+        <EmptyState message="No theory completed yet." />
       )}
 
-      {!hasTaggedItems && (
-        <EmptyState message="No repertoire or theory tagged yet." />
-      )}
+      {/* Collapsible lesson history */}
+      <section aria-label="Lesson history">
+        <button
+          type="button"
+          onClick={() => setHistoryOpen((o) => !o)}
+          className="flex items-center gap-2 text-lg font-semibold text-studio-text hover:text-studio-cream transition-colors duration-[150ms] w-full text-left"
+          aria-expanded={historyOpen}
+        >
+          <span className="text-studio-muted text-sm transition-transform duration-150" style={{ transform: historyOpen ? "rotate(90deg)" : "rotate(0deg)" }}>▶</span>
+          Lesson History
+          {hasEntries && (
+            <span className="text-xs font-normal text-studio-muted ml-1">
+              ({lesson_entries?.length})
+            </span>
+          )}
+        </button>
 
-      {/* Lesson history */}
-      <section>
-        <h2 className="text-lg font-semibold text-studio-text mb-3 flex items-center gap-2">
-          Lesson Notes
-        </h2>
-        {hasEntries ? (
-          <ul className="space-y-3">
-            {(lesson_entries ?? []).map((entry) => (
-              <li key={entry.id} className="rounded-lg border border-studio-rim bg-studio-surface p-4 hover:-translate-y-0.5 hover:shadow-studio-glow transition-all duration-[250ms] will-change-transform">
-                <p className="text-xs text-studio-muted mb-2">
-                  {new Date(entry.created_at).toLocaleDateString(undefined, {
-                    year: "numeric", month: "short", day: "numeric",
-                  })}
-                </p>
-                <LessonContent content={entry.content} />
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EmptyState message="No lesson notes recorded yet." />
+        {historyOpen && (
+          <div className="mt-3">
+            {hasEntries ? (
+              <ul className="space-y-3">
+                {(lesson_entries ?? []).map((entry) => (
+                  <li key={entry.id} className="rounded-lg border border-studio-rim bg-studio-surface p-4 hover:-translate-y-0.5 hover:shadow-studio-glow transition-all duration-[250ms] will-change-transform">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs text-studio-muted">
+                        {formatDate(entry.created_at)}
+                      </p>
+                      {role === "teacher" && (
+                        <Link
+                          href={`/lessons/${entry.id}/edit`}
+                          className="text-xs font-medium text-studio-gold hover:text-studio-cream transition-colors duration-[150ms]"
+                        >
+                          Edit →
+                        </Link>
+                      )}
+                    </div>
+                    <LessonContent content={entry.content} />
+                    <LessonTags tags={entry.tags} />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyState message="No lessons recorded yet. Start by adding a new lesson." />
+            )}
+          </div>
         )}
       </section>
     </div>
   )
-}
-
-function LessonContent({ content }: { content: unknown }) {
-  if (!content || typeof content !== "object") {
-    return <p className="text-studio-muted text-sm italic">No notes.</p>
-  }
-
-  function extractText(node: any): string {
-    if (node.text) return node.text
-    if (node.content) return node.content.map(extractText).join(" ")
-    return ""
-  }
-
-  const text = extractText(content).trim()
-  return text
-    ? <p className="text-studio-text text-sm whitespace-pre-wrap">{text}</p>
-    : <p className="text-studio-muted text-sm italic">No notes.</p>
 }

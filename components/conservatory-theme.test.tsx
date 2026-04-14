@@ -191,6 +191,7 @@ describe('Property 3: Student cards carry required styling classes', () => {
       id: fc.uuid(),
       full_name: fc.string({ minLength: 1, maxLength: 40 }),
       last_lesson_date: fc.option(fc.string({ minLength: 1 }), { nil: null }),
+      lesson_count: fc.nat(),
     })
     const studentsArb = fc.array(studentArb, { minLength: 1, maxLength: 10 })
 

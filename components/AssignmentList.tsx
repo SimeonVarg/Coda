@@ -19,6 +19,11 @@ function formatDate(iso: string) {
   })
 }
 
+function isOverdue(due_date: string | null): boolean {
+  if (!due_date) return false
+  return due_date < new Date().toISOString().slice(0, 10)
+}
+
 export default function AssignmentList({ assignments, role }: AssignmentListProps) {
   const [items, setItems] = useState<AssignmentRow[]>(assignments)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -27,7 +32,6 @@ export default function AssignmentList({ assignments, role }: AssignmentListProp
   const completedItems = items.filter((a) => a.completed_at !== null)
 
   const markDone = async (id: string) => {
-    // Block demo users
     const supabase = createSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (isDemoUser(user)) {
@@ -36,16 +40,8 @@ export default function AssignmentList({ assignments, role }: AssignmentListProp
     }
 
     const now = new Date().toISOString()
-
-    // Optimistic update — remove from active list
-    setItems((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, completed_at: now } : a))
-    )
-    setErrors((prev) => {
-      const next = { ...prev }
-      delete next[id]
-      return next
-    })
+    setItems((prev) => prev.map((a) => (a.id === id ? { ...a, completed_at: now } : a)))
+    setErrors((prev) => { const next = { ...prev }; delete next[id]; return next })
 
     const { error } = await supabase
       .from("practice_assignments")
@@ -53,10 +49,7 @@ export default function AssignmentList({ assignments, role }: AssignmentListProp
       .eq("id", id)
 
     if (error) {
-      // Revert on failure
-      setItems((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, completed_at: null } : a))
-      )
+      setItems((prev) => prev.map((a) => (a.id === id ? { ...a, completed_at: null } : a)))
       setErrors((prev) => ({ ...prev, [id]: "Failed to mark done. Please try again." }))
     }
   }
@@ -69,45 +62,54 @@ export default function AssignmentList({ assignments, role }: AssignmentListProp
 
   return (
     <div className="space-y-6">
-      {/* Active assignments */}
       {activeItems.length > 0 && (
         <section>
           {role === "teacher" && (
-            <h3 className="text-sm font-semibold text-studio-text uppercase tracking-wide mb-2">
-              Active
-            </h3>
+            <h3 className="text-sm font-semibold text-studio-text uppercase tracking-wide mb-2">Active</h3>
           )}
           <ul className="space-y-2">
-            {activeItems.map((a) => (
-              <li
-                key={a.id}
-                className="flex items-start gap-3 rounded-lg border border-studio-primary/30 bg-studio-surface px-4 py-3 transition-opacity duration-200"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-studio-cream">{a.description}</p>
-                  <div className="mt-1 flex flex-wrap gap-3 text-xs text-studio-muted">
-                    {a.due_date && (
-                      <span>Due: {formatDate(a.due_date)}</span>
-                    )}
-                    {role === "teacher" && (
-                      <span>From lesson: {formatDate(a.lesson_entry_date)}</span>
+            {activeItems.map((a) => {
+              const overdue = isOverdue(a.due_date)
+              return (
+                <li
+                  key={a.id}
+                  className={`flex items-start gap-3 rounded-lg border bg-studio-surface px-4 py-3 transition-colors duration-200 ${
+                    overdue ? "border-studio-rose/50" : "border-studio-primary/30"
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-studio-cream">{a.description}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-studio-muted">
+                      {a.due_date && (
+                        <span className={overdue ? "text-studio-rose font-medium" : ""}>
+                          Due: {formatDate(a.due_date)}
+                          {overdue && (
+                            <span className="ml-1.5 rounded px-1.5 py-0.5 bg-studio-rose/15 text-studio-rose font-semibold">
+                              Overdue
+                            </span>
+                          )}
+                        </span>
+                      )}
+                      {role === "teacher" && (
+                        <span>From lesson: {formatDate(a.lesson_entry_date)}</span>
+                      )}
+                    </div>
+                    {errors[a.id] && (
+                      <p role="alert" className="mt-1 text-xs text-studio-rose">{errors[a.id]}</p>
                     )}
                   </div>
-                  {errors[a.id] && (
-                    <p role="alert" className="mt-1 text-xs text-studio-rose">{errors[a.id]}</p>
+                  {role === "student" && (
+                    <button
+                      type="button"
+                      onClick={() => markDone(a.id)}
+                      className="shrink-0 rounded-md bg-studio-primary text-studio-bg px-3 py-1.5 text-xs font-medium hover:bg-studio-gold focus:outline-none focus:ring-2 focus:ring-studio-gold/50"
+                    >
+                      Mark done
+                    </button>
                   )}
-                </div>
-                {role === "student" && (
-                  <button
-                    type="button"
-                    onClick={() => markDone(a.id)}
-                    className="shrink-0 rounded-md bg-studio-primary text-studio-bg px-3 py-1.5 text-xs font-medium hover:bg-studio-gold focus:outline-none focus:ring-2 focus:ring-studio-gold/50"
-                  >
-                    Mark done
-                  </button>
-                )}
-              </li>
-            ))}
+                </li>
+              )
+            })}
           </ul>
         </section>
       )}
@@ -116,12 +118,9 @@ export default function AssignmentList({ assignments, role }: AssignmentListProp
         <EmptyState message="No active assignments — great work!" />
       )}
 
-      {/* Completed assignments — teacher only */}
       {role === "teacher" && completedItems.length > 0 && (
         <section>
-          <h3 className="text-sm font-semibold text-studio-muted uppercase tracking-wide mb-2">
-            Completed
-          </h3>
+          <h3 className="text-sm font-semibold text-studio-muted uppercase tracking-wide mb-2">Completed</h3>
           <ul className="space-y-2">
             {completedItems.map((a) => (
               <li
