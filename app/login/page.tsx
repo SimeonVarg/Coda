@@ -4,12 +4,9 @@ import { useState } from 'react'
 import { signIn } from '@/lib/auth'
 import { getDemoCredentials, demoEnabled, DEMO_STUDENT_ID } from '@/lib/demo'
 import MusicBackground from '@/components/motifs/MusicBackground'
+import DemoTutorial from '@/components/DemoTutorial'
 
-const FEATURES = [
-  { icon: '🎵', label: 'Track repertoire progress' },
-  { icon: '📝', label: 'Log lesson notes' },
-  { icon: '🎓', label: 'Assign practice tasks' },
-]
+const TUTORIAL_KEY = 'coda_tutorial_seen'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -18,6 +15,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [demoLoading, setDemoLoading] = useState<'teacher' | 'student' | null>(null)
   const [demoError, setDemoError] = useState<string | null>(null)
+  const [tutorialRole, setTutorialRole] = useState<'teacher' | 'student' | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -34,7 +32,7 @@ export default function LoginPage() {
     }
   }
 
-  async function handleDemoSignIn(role: 'teacher' | 'student') {
+  async function runDemoSignIn(role: 'teacher' | 'student') {
     const creds = getDemoCredentials(role)
     if (!creds) return
 
@@ -53,9 +51,32 @@ export default function LoginPage() {
     }
   }
 
+  function handleDemoClick(role: 'teacher' | 'student') {
+    if (typeof window !== 'undefined' && localStorage.getItem(TUTORIAL_KEY)) {
+      runDemoSignIn(role)
+    } else {
+      setTutorialRole(role)
+    }
+  }
+
+  function handleTutorialDone() {
+    if (typeof window !== 'undefined') localStorage.setItem(TUTORIAL_KEY, '1')
+    const role = tutorialRole!
+    setTutorialRole(null)
+    runDemoSignIn(role)
+  }
+
   return (
     <main className="relative min-h-screen flex items-center justify-center bg-studio-bg overflow-hidden" style={{ zIndex: 1 }}>
       <MusicBackground />
+
+      {tutorialRole && (
+        <DemoTutorial
+          role={tutorialRole}
+          onComplete={handleTutorialDone}
+          onClose={handleTutorialDone}
+        />
+      )}
 
       <div className="relative z-10 w-full max-w-sm">
         {/* Card */}
@@ -124,22 +145,12 @@ export default function LoginPage() {
                 </span>
               </div>
 
-              {/* Feature highlights */}
-              <div className="flex justify-center gap-4 mb-4">
-                {FEATURES.map((f) => (
-                  <div key={f.label} className="flex flex-col items-center gap-1 text-center">
-                    <span className="text-xl" aria-hidden="true">{f.icon}</span>
-                    <span className="text-xs text-studio-muted leading-tight max-w-[60px]">{f.label}</span>
-                  </div>
-                ))}
-              </div>
-
               {/* Demo buttons */}
               <div className="flex gap-3">
                 <button
                   type="button"
                   disabled={demoLoading !== null}
-                  onClick={() => handleDemoSignIn('teacher')}
+                  onClick={() => handleDemoClick('teacher')}
                   className="flex-1 flex flex-col items-center gap-0.5 border border-studio-primary/50 text-studio-primary rounded-xl px-3 py-3 hover:bg-studio-primary/10 hover:border-studio-primary transition-all duration-[150ms] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span className="text-lg" aria-hidden="true">👩‍🏫</span>
@@ -151,7 +162,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   disabled={demoLoading !== null}
-                  onClick={() => handleDemoSignIn('student')}
+                  onClick={() => handleDemoClick('student')}
                   className="flex-1 flex flex-col items-center gap-0.5 border border-studio-gold/50 text-studio-gold rounded-xl px-3 py-3 hover:bg-studio-gold/10 hover:border-studio-gold transition-all duration-[150ms] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span className="text-lg" aria-hidden="true">🎓</span>

@@ -17,47 +17,31 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function EditLessonPage({ params }: EditLessonPageProps) {
   const supabase = createSupabaseServerClient()
 
-  // Fetch the lesson entry
   const { data: entry, error } = await supabase
     .from('lesson_entries')
     .select('id, student_id, content')
     .eq('id', params.id)
     .single()
 
-  if (error || !entry) {
-    notFound()
-  }
+  if (error || !entry) notFound()
 
-  // Fetch the associated student
   const { data: student } = await supabase
     .from('profiles')
     .select('id, full_name')
     .eq('id', entry.student_id)
     .single()
 
-  // Fetch associated tags with catalog item details
   const { data: tagRows } = await supabase
     .from('repertoire_tags')
-    .select('catalog_item_id, status, catalog_items(id, title, type, composer)')
+    .select('catalog_item_id, status, catalog_items(id, title, type, composer, tradition, region, tuning_system, cultural_context, language)')
     .eq('lesson_entry_id', params.id)
 
   const initialTags: TagWithStatus[] = (tagRows ?? [])
     .map((row: { catalog_item_id: string; status: string; catalog_items: unknown }) => {
-      const item = row.catalog_items as {
-        id: string
-        title: string
-        type: 'repertoire' | 'theory'
-        composer: string | null
-      } | null
+      const item = row.catalog_items as CatalogItem | null
       if (!item) return null
-      const catalogItem: CatalogItem = {
-        id: item.id,
-        title: item.title,
-        type: item.type,
-        composer: item.composer,
-      }
       return {
-        item: catalogItem,
+        item,
         status: (row.status ?? (item.type === 'repertoire' ? 'introduced' : 'completed')) as TagWithStatus['status'],
       } satisfies TagWithStatus
     })
@@ -68,10 +52,7 @@ export default async function EditLessonPage({ params }: EditLessonPageProps) {
       <MusicBackground />
       {student && (
         <div className="mb-6">
-          <Breadcrumb
-            href={`/progress/${entry.student_id}`}
-            label={`Back to ${student.full_name}`}
-          />
+          <Breadcrumb href={`/progress/${entry.student_id}`} label={`Back to ${student.full_name}`} />
         </div>
       )}
       <h1 className="mb-8 text-2xl font-semibold font-display text-studio-cream">Edit Lesson Entry</h1>

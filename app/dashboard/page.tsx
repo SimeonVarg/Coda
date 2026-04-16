@@ -7,6 +7,7 @@ import type { StudentSummary } from "@/lib/types"
 import DashboardLoading from "./loading"
 import { EighthNoteBeam, MusicBackground } from "@/components/motifs"
 import StudentSearch from "./StudentSearch"
+import PacingWidget from "@/components/PacingWidget"
 
 export const metadata = { title: 'My Students \u2014 Coda' }
 
@@ -90,6 +91,7 @@ async function StudentList({ teacherId }: { teacherId: string }) {
     <>
       <QuickStats students={students} />
       <StudentSearch students={students} />
+      <PacingWidget teacherId={teacherId} />
     </>
   )
 }

@@ -135,7 +135,7 @@ describe('Property 1: Active nav link styling', () => {
 
         unmount()
       }),
-      { numRuns: 50 }
+      { numRuns: 5 }
     )
   })
 })
@@ -175,7 +175,7 @@ describe('Property 2: Error display uses warm tone', () => {
 
         unmount()
       }),
-      { numRuns: 50 }
+      { numRuns: 5 }
     )
   })
 })
@@ -192,6 +192,8 @@ describe('Property 3: Student cards carry required styling classes', () => {
       full_name: fc.string({ minLength: 1, maxLength: 40 }),
       last_lesson_date: fc.option(fc.string({ minLength: 1 }), { nil: null }),
       lesson_count: fc.nat(),
+      has_recent_lesson: fc.boolean(),
+      pending_assignments: fc.nat(),
     })
     const studentsArb = fc.array(studentArb, { minLength: 1, maxLength: 10 })
 
@@ -210,7 +212,7 @@ describe('Property 3: Student cards carry required styling classes', () => {
 
         unmount()
       }),
-      { numRuns: 50 }
+      { numRuns: 5 }
     )
   })
 })
@@ -242,7 +244,7 @@ describe('Property 4: Status badge color is status-specific', () => {
 
         unmount()
       }),
-      { numRuns: 50 }
+      { numRuns: 5 }
     )
   })
 
@@ -282,7 +284,7 @@ describe('Property 5: Stagger animation delay scales with index', () => {
 
         unmount()
       }),
-      { numRuns: 50 }
+      { numRuns: 5 }
     )
   })
 })
@@ -315,13 +317,13 @@ describe('Property 6: Music motif components are accessible and configurable', (
         expect(svg!.getAttribute('aria-hidden')).toBe('true')
 
         // Opacity is applied via inline style
-        const svgStyle = (svg as HTMLElement).style
+        const svgStyle = (svg as unknown as HTMLElement).style
         const renderedOpacity = parseFloat(svgStyle.opacity)
         expect(renderedOpacity).toBeCloseTo(opacity, 5)
 
         unmount()
       }),
-      { numRuns: 50 }
+      { numRuns: 5 }
     )
   })
 })

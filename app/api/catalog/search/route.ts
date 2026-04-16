@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from("catalog_items")
-    .select("id, title, type, composer")
+    .select("id, title, type, composer, tradition, region, tuning_system, cultural_context, language")
     .limit(20)
 
   if (q.length >= 3) {
