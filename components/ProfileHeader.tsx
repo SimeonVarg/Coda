@@ -1,28 +1,9 @@
 import type { StudentProfile } from "@/lib/types"
+import { QuarterNote, EighthNoteBeam } from "@/components/motifs"
 
 interface ProfileHeaderProps {
   profile: StudentProfile | null
   studentName?: string
-}
-
-const INSTRUMENT_ICONS: Record<string, string> = {
-  piano: "🎹",
-  violin: "🎻",
-  cello: "🎻",
-  guitar: "🎸",
-  flute: "🎵",
-  trumpet: "🎺",
-  drums: "🥁",
-  voice: "🎤",
-  singing: "🎤",
-}
-
-function instrumentIcon(instrument: string): string {
-  const key = instrument.toLowerCase()
-  for (const [k, v] of Object.entries(INSTRUMENT_ICONS)) {
-    if (key.includes(k)) return v
-  }
-  return "🎵"
 }
 
 export default function ProfileHeader({ profile, studentName }: ProfileHeaderProps) {
@@ -49,13 +30,13 @@ export default function ProfileHeader({ profile, studentName }: ProfileHeaderPro
         <div className="flex flex-wrap gap-2 mb-3">
           {profile.instrument && (
             <span className="inline-flex items-center gap-1.5 bg-studio-primary/15 text-studio-primary border border-studio-primary/30 rounded-full px-3 py-1 text-xs font-medium">
-              <span aria-hidden="true">{instrumentIcon(profile.instrument)}</span>
+              <QuarterNote className="h-3.5 w-auto" opacity={1} />
               {profile.instrument}
             </span>
           )}
           {profile.grade_level && (
             <span className="inline-flex items-center gap-1.5 bg-studio-gold/15 text-studio-gold border border-studio-gold/30 rounded-full px-3 py-1 text-xs font-medium">
-              <span aria-hidden="true">🎓</span>
+              <EighthNoteBeam className="h-3.5 w-auto" opacity={1} />
               {profile.grade_level}
             </span>
           )}

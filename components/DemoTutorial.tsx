@@ -1,64 +1,75 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { TrebleClef, QuarterNote, StaffLines, EighthNoteBeam, Waveform } from '@/components/motifs'
+
+type MotifName = 'clef' | 'note' | 'staff' | 'beam' | 'wave'
 
 interface Slide {
-  icon: string
+  icon: MotifName
   title: string
   description: string
+}
+
+const MOTIFS: Record<MotifName, React.ComponentType<{ className?: string; opacity?: number }>> = {
+  clef: TrebleClef,
+  note: QuarterNote,
+  staff: StaffLines,
+  beam: EighthNoteBeam,
+  wave: Waveform,
 }
 
 const SLIDES: Record<'teacher' | 'student', Slide[]> = {
   teacher: [
     {
-      icon: '👩‍🏫',
+      icon: 'clef',
       title: 'Welcome to Coda',
       description: "You're signed in as Ms. Elena Vasquez. Coda helps music teachers track student progress, lessons, and practice — all in one place.",
     },
     {
-      icon: '🎓',
+      icon: 'note',
       title: 'Your Students',
       description: 'The dashboard shows all your students with lesson counts and pending assignments. Click any student to see their full progress.',
     },
     {
-      icon: '📝',
+      icon: 'staff',
       title: 'Lesson Notes',
       description: 'Log rich lesson notes with a built-in editor. Tag repertoire and theory items directly from the lesson to build each student\'s progress tree.',
     },
     {
-      icon: '🎵',
+      icon: 'beam',
       title: 'Repertoire & Milestones',
       description: 'Track what each student is working on — from introduced to mastered. Assign technique milestones from a curated library of 35+ skills.',
     },
     {
-      icon: '📋',
+      icon: 'wave',
       title: 'Curriculum Planner',
       description: 'Build a term-by-term curriculum plan for each student with target dates and linked repertoire or milestones. See progress at a glance.',
     },
   ],
   student: [
     {
-      icon: '🎓',
+      icon: 'note',
       title: 'Welcome to Coda',
       description: "You're signed in as Liam Chen. Coda shows your musical journey — repertoire, practice, and goals all in one place.",
     },
     {
-      icon: '🌳',
+      icon: 'beam',
       title: 'Progress Tree',
       description: 'See every piece you\'ve worked on, from introduced to mastered. Your full lesson history is here, with notes from each session.',
     },
     {
-      icon: '📓',
+      icon: 'staff',
       title: 'Practice Journal',
       description: 'Log your daily practice sessions with duration, mood, and metronome tempos. Track your consistency and improvement over time.',
     },
     {
-      icon: '💬',
+      icon: 'wave',
       title: 'Lesson Reflections',
       description: 'After each lesson, write a quick self-assessment — what went well, what was challenging, and your next goal.',
     },
     {
-      icon: '📋',
+      icon: 'clef',
       title: 'Your Curriculum Plan',
       description: 'Your teacher has mapped out your learning path with target dates. See what\'s coming up next and track what you\'ve completed.',
     },
@@ -107,7 +118,9 @@ export default function DemoTutorial({ role, onComplete, onClose }: Props) {
 
         {/* Slide content */}
         <div className="text-center mb-6">
-          <div className="text-5xl mb-4" aria-hidden="true">{current.icon}</div>
+          <div className="mb-4 flex justify-center text-studio-gold" aria-hidden="true">
+            {(() => { const Motif = MOTIFS[current.icon]; return <Motif className="h-14 w-auto" opacity={0.9} /> })()}
+          </div>
           <h2 className="font-display text-2xl text-studio-cream mb-2">{current.title}</h2>
           <p className="text-studio-muted text-sm leading-relaxed">{current.description}</p>
         </div>

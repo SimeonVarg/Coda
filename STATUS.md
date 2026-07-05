@@ -1,4 +1,24 @@
-# Coda — Status (July 5, 2026 hardening session)
+# Coda — Status (July 5, 2026: hardening + polish sessions)
+
+## Round 2 (same day): visual polish + richer demo data
+
+- **Emoji → motif SVGs.** Login demo buttons (treble clef / quarter note),
+  all 10 demo-tutorial slides, and Progress Tree profile chips now use the
+  gold line-art components from `components/motifs/` instead of emojis.
+  Verified in browser; matches the serif/gold identity.
+- **Curriculum pacing looks lived-in**: marked one item complete for Sofia
+  and Marcus (via `status='completed'` — note: `completed_at` is
+  trigger-managed from `status`, direct writes to it get reverted). Dashboard
+  now shows 40% / 33% / 33%, all On Track.
+- Verified this round: login, tutorial slides, dashboard pacing, progress
+  chips, clean production build.
+- Small new observations (low priority): a 🔥 streak emoji remains on
+  dashboard student cards; signed-in users who land on /login aren't
+  redirected (harmless — the demo buttons hard-navigate).
+
+---
+
+# Round 1 notes (hardening)
 
 Session goal: demo-ready auth + a real-looking studio. All flows below were
 verified by driving the app in a browser against the restored production

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { signIn } from '@/lib/auth'
 import { getDemoCredentials, demoEnabled, DEMO_STUDENT_ID } from '@/lib/demo'
 import MusicBackground from '@/components/motifs/MusicBackground'
+import { TrebleClef, QuarterNote } from '@/components/motifs'
 import DemoTutorial from '@/components/DemoTutorial'
 
 const TUTORIAL_KEY = 'coda_tutorial_seen'
@@ -153,7 +154,7 @@ export default function LoginPage() {
                   onClick={() => handleDemoClick('teacher')}
                   className="flex-1 flex flex-col items-center gap-0.5 border border-studio-primary/50 text-studio-primary rounded-xl px-3 py-3 hover:bg-studio-primary/10 hover:border-studio-primary transition-all duration-[150ms] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span className="text-lg" aria-hidden="true">👩‍🏫</span>
+                  <TrebleClef className="h-6 w-auto" opacity={1} />
                   <span className="text-xs font-semibold">
                     {demoLoading === 'teacher' ? 'Loading…' : 'Teacher view'}
                   </span>
@@ -165,7 +166,7 @@ export default function LoginPage() {
                   onClick={() => handleDemoClick('student')}
                   className="flex-1 flex flex-col items-center gap-0.5 border border-studio-gold/50 text-studio-gold rounded-xl px-3 py-3 hover:bg-studio-gold/10 hover:border-studio-gold transition-all duration-[150ms] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span className="text-lg" aria-hidden="true">🎓</span>
+                  <QuarterNote className="h-6 w-auto" opacity={1} />
                   <span className="text-xs font-semibold">
                     {demoLoading === 'student' ? 'Loading…' : 'Student view'}
                   </span>
